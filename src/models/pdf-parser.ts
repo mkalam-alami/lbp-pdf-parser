@@ -38,7 +38,7 @@ class PdfFormatRanges {
 export class PdfParser {
   private static readonly operationXPositions = [52.559999999999995, 53.519999999999996, 53.76, 52.8]
   private static readonly operationXPositions2 = [85.92, 89.28, 86.16]
-  private static readonly operationRegex = /^([0-9]{2}\/[0-9]{2})(.+?(?:[0-9]{7})?(?:\/[0-9]{4})?)([+-][ 0-9+-]+?,[0-9]{2})/
+  private static readonly operationRegex = /^([0-9]{2}\/[0-9]{2})(.+?(?:[0-9]{7})?(?:\/[0-9]{4})?) ([ 0-9+-]+?,[0-9]{2})/
   private static readonly blacklist = /^(?:date| touche)/
   private static readonly yearLineRegex = /[Aa]ncien solde au.+?([0-9]{4})/
   private static readonly withFrancsFormatMarker = 'en francs'
@@ -57,29 +57,30 @@ export class PdfParser {
   private static async operationsFromFile(file: File): Promise<Operation[]> {
     const fileContents = await PromiseHelper.fileReaderAsArrayBufferP(file)
     const pdfDocument = await PDFJS.getDocument(new Uint8Array(fileContents))
-    const lines = await PdfParser.linesFromDocument(pdfDocument)
+    const [lines, xRanges] = await PdfParser.linesFromDocument(pdfDocument)
     const yearLine = lines.find(line => line.text.match(PdfParser.yearLineRegex) !== null)
     const year = yearLine.text.match(PdfParser.yearLineRegex)[1]
     const operationLines = lines.filter(PdfParser.looksLikeOperationLine)
-    return PdfParser.operationsFromLines(operationLines, year)
+    return PdfParser.operationsFromLines(operationLines, year, xRanges)
   }
 
-  private static async linesFromDocument(pdfDocument: PDFDocumentProxy): Promise<Line[]> {
+  private static async linesFromDocument(pdfDocument: PDFDocumentProxy): Promise<[Line[], XRange]> {
     const [pdfItems, pdfFormat] = await this.extractItemsAndFormat(pdfDocument)
-    const xRanges = PdfFormatRanges.getXRanges(pdfFormat)
-    return this.extractLines(pdfItems, xRanges)
+    return [
+      this.extractLines(pdfItems),
+      PdfFormatRanges.getXRanges(pdfFormat)
+    ];
   }
 
-  private static extractLines<T>(pdfItems: T[], xRanges: XRange) {
+  private static extractLines<T>(pdfItems: T[]) {
     return pdfItems
       .reduce((linesByY: Map<number, Line>, item: any): Map<number, Line> => {
-        const line = {text: item.str, x: item.transform[4], y: item.transform[5]}
+        const line = {text: item.str, x: item.transform[4], y: item.transform[5], lastX: item.transform[4]}
         const lineAtY = linesByY.get(line.y)
         if (lineAtY === undefined) {
-          return linesByY.set(line.y, {text: line.text, x: line.x, y: line.y})
+          return linesByY.set(line.y, {text: line.text, x: line.x, y: line.y, lastX: line.x})
         } else {
-          const lineWithSign = PdfParser.addSignIfAmount(line, xRanges)
-          return linesByY.set(lineWithSign.y, Object.assign(lineAtY, {text: lineAtY.text + lineWithSign.text}))
+          return linesByY.set(line.y, Object.assign(lineAtY, {text: lineAtY.text + line.text, lastX: line.x}))
         }
       }, Map<number, Line>())
       .sortBy((line, y) => -y)
@@ -98,30 +99,22 @@ export class PdfParser {
     return [pdfItems, pdfFormat]
   }
 
-  private static addSignIfAmount(line: Line, xRanges: XRange): Line {
-    const newLine = Object.assign({}, line)
-    if (line.x >= xRanges.credit[0] && line.x <= xRanges.credit[1]) {
-      newLine.text = '+' + line.text
-    } else if (line.x >= xRanges.debit[0] && line.x <= xRanges.debit[1]) {
-      newLine.text = '-' + line.text
-    }
-    return newLine
-  }
-
   private static looksLikeOperationLine(line: Line): boolean {
     console.debug(line, line.x);
     return (PdfParser.operationXPositions.includes(line.x) && line.text.match(PdfParser.operationRegex) !== null)
       || (PdfParser.operationXPositions2.includes(line.x) && !line.text.match(PdfParser.blacklist))
   }
 
-  private static operationsFromLines(lines: Line[], year: string): Operation[] {
+  private static operationsFromLines(lines: Line[], year: string, xRanges: XRange): Operation[] {
+    const debitRanges = xRanges.debit;
     return lines.reduce((operations: Operation[], line: Line) => {
       const matches = line.text.match(PdfParser.operationRegex)
       if (matches) {
+        const isDebit = line.lastX >= debitRanges[0] && line.lastX <= debitRanges[1];
         operations.push({
           date: moment(matches[1] + '/' + year, 'DD/MM/YYYY'),
           description: matches[2],
-          amount: NumberHelper.parseNumber(matches[3], ','),
+          amount: NumberHelper.parseNumber(matches[3], ',') * (isDebit ? -1 : 1),
         })
       } else if (operations.length > 0) {
         operations[operations.length - 1].description += '\n' + line.text
