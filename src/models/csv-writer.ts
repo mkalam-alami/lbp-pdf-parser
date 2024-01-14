@@ -2,7 +2,7 @@ import * as FileSaver from 'file-saver'
 import {Operation} from './operation'
 
 export class CsvWriter {
-  public static readonly columnSeparator = ','
+  public static readonly columnSeparator = ';'
   public static readonly columnDelimiter = '"'
 
   static async write(operations: Operation[]) {
@@ -11,10 +11,19 @@ export class CsvWriter {
   }
 
   private static toCsvRows(operations: Operation[]): string {
-    return operations.reduce((result, operation) => {
-      return result + operation.date.format('YYYY/MM/DD') + CsvWriter.columnSeparator
-        + operation.amount + CsvWriter.columnSeparator + CsvWriter.columnDelimiter
-        + operation.description.replace('"', '\"') + CsvWriter.columnDelimiter + '\n'
+    // HomeBank-compatible format
+    return 'date;paymode;info;payee;memo;amount;category;tags\n'
+      + operations.reduce((result, operation) => {
+      return result + [
+        operation.date.format('MM/DD/YYYY'), // date
+        operation.description.toUpperCase().includes('VIREMENT') ? 4 : 6, // payment type, here bank transfer or debit card
+        '', // info
+        '', // payee
+        operation.description.replace(/"/g, '\"').replace(/\n/g, ' '), // memo
+        operation.amount, // amount
+        '', // category
+        '', // tags
+      ].join(CsvWriter.columnSeparator) + '\n'
     }, '')
   }
 }

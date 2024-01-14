@@ -1,13 +1,13 @@
-import {Operation} from './operation'
-import {PromiseHelper} from '../helpers/promise-helper'
-import {Map} from 'immutable'
-import {Line} from './line'
-import {CollectionHelper} from '../helpers/collection-helper'
-import {PDFJS} from 'pdfjs-dist'
-import {OperationsAndErrors} from './operations-and-errors'
-import {NumberHelper} from '../helpers/number-helper'
-import {FilesParser} from './files-parser'
+import { Map } from 'immutable'
 import * as moment from 'moment'
+import { PDFJS } from 'pdfjs-dist'
+import { CollectionHelper } from '../helpers/collection-helper'
+import { NumberHelper } from '../helpers/number-helper'
+import { PromiseHelper } from '../helpers/promise-helper'
+import { Line } from './Line'
+import { FilesParser } from './files-parser'
+import { Operation } from './operation'
+import { OperationsAndErrors } from './operations-and-errors'
 
 enum PdfFormat {
   WITH_FRANCS,
@@ -36,8 +36,8 @@ class PdfFormatRanges {
 }
 
 export class PdfParser {
-  private static readonly operationXPositions = [52.559999999999995, 53.519999999999996]
-  private static readonly operationXPositions2 = [85.92, 89.28]
+  private static readonly operationXPositions = [52.559999999999995, 53.519999999999996, 53.76, 52.8]
+  private static readonly operationXPositions2 = [85.92, 89.28, 86.16]
   private static readonly operationRegex = /^([0-9]{2}\/[0-9]{2})(.+?(?:[0-9]{7})?(?:\/[0-9]{4})?)([+-][ 0-9+-]+?,[0-9]{2})/
   private static readonly blacklist = /^(?:date| touche)/
   private static readonly yearLineRegex = /[Aa]ncien solde au.+?([0-9]{4})/
@@ -70,7 +70,7 @@ export class PdfParser {
     return this.extractLines(pdfItems, xRanges)
   }
 
-  private static extractLines(pdfItems: T[], xRanges: XRange) {
+  private static extractLines<T>(pdfItems: T[], xRanges: XRange) {
     return pdfItems
       .reduce((linesByY: Map<number, Line>, item: any): Map<number, Line> => {
         const line = {text: item.str, x: item.transform[4], y: item.transform[5]}
@@ -86,9 +86,9 @@ export class PdfParser {
       .toArray()
   }
 
-  private static async extractItemsAndFormat(pdfDocument: PDFDocumentProxy): Promise<[T[], PdfFormat]> {
+  private static async extractItemsAndFormat<T>(pdfDocument: PDFDocumentProxy): Promise<[T[], PdfFormat]> {
     let pdfFormat = PdfFormat.WITHOUT_FRANCS
-    const pdfItems = (await CollectionHelper.reduce(pdfDocument, (items, item) => {
+    const pdfItems = (await CollectionHelper.reduce(pdfDocument, (items, item: any) => {
       items.push(item)
       if (item.str.indexOf(this.withFrancsFormatMarker) !== -1) {
         pdfFormat = PdfFormat.WITH_FRANCS
@@ -109,6 +109,7 @@ export class PdfParser {
   }
 
   private static looksLikeOperationLine(line: Line): boolean {
+    console.debug(line, line.x);
     return (PdfParser.operationXPositions.includes(line.x) && line.text.match(PdfParser.operationRegex) !== null)
       || (PdfParser.operationXPositions2.includes(line.x) && !line.text.match(PdfParser.blacklist))
   }

@@ -3,12 +3,12 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "start": "ng serve --progress false",
-    "build": "ng build --progress false",
-    "test": "ng test --progress false",
-    "lint": "ng lint --progress false",
-    "e2e": "ng e2e --progress false",
-    "bundle": "ng build --prod --progress false"
+    "start": "ng serve",
+    "build": "ng build",
+    "test": "ng test",
+    "lint": "ng lint",
+    "e2e": "ng e2e",
+    "bundle": "ng build --prod"
   },
   "private": true,
   "dependencies": {
@@ -19,7 +19,6 @@
     "@angular/flex-layout": "^2.0.0-beta.7",
     "@angular/forms": "^4.0.0",
     "@angular/http": "^4.0.0",
-    "@angular/material": "^2.0.0-beta.3",
     "@angular/platform-browser": "^4.0.0",
     "@angular/platform-browser-dynamic": "^4.0.0",
     "@angular/router": "^4.0.0",

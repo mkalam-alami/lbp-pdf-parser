@@ -34,9 +34,9 @@
               (click)="exportToCsvFile()">
         Export CSV file
       </button>
-      <md-progress-spinner fxFlex="0 0 auto"
+      <!-- <md-progress-spinner fxFlex="0 0 auto"
                            [value]="progress">
-      </md-progress-spinner>
+      </md-progress-spinner> -->
     </div>
   </section>
 
@@ -62,28 +62,30 @@
   <div fxFlex="0 1 auto"
        fxLayout='row'
        fxLayoutAlign="stretch">
-    <md-card fxFlex="1 1 auto"
+    <!-- <md-card fxFlex="1 1 auto"
              fxLayout='column'
              fxLayoutAlign="stretch"
              class="files"
-             *ngIf="selectedFiles.length > 0">
+             *ngIf="selectedFiles.length > 0"> -->
+    <div>
       <h2>Files</h2>
       <table fxFlex="0 1 auto">
         <tr *ngFor="let selectedFile of selectedFiles">
           <td>{{selectedFile.name}}</td>
         </tr>
       </table>
-    </md-card>
+    </div>
 
-    <md-card fxFlex="1 1 auto"
+    <!-- <md-card fxFlex="1 1 auto"
              fxLayout='column'
              fxLayoutAlign="stretch"
              *ngIf="operations.length > 0 || errors.length > 0"
              [ngSwitch]="progress > 0 && progress < 100"
-             class="operations">
+             class="operations"> -->
+    <div>
       <h2>Operations</h2>
-      <p *ngSwitchCase="true">Loading…</p>
-      <div *ngSwitchCase="false"
+      <p *ngIf="progress > 0 && progress < 100">Loading…</p>
+      <div *ngIf="progress === 0 || progress === 100"
            fxLayout='column'>
         <ul fxFlex="0 1 auto"
             class="errors"
@@ -111,6 +113,6 @@
           </tbody>
         </table>
       </div>
-    </md-card>
+    </div>
   </div>
 </div>

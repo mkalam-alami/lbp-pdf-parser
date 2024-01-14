@@ -8,8 +8,4 @@ It is a workaround for the feature available on their website which only let's y
 
 * If you don't have it already, install [Node.js](https://nodejs.org/en/)
 * `git clone` this repo
-* Run `npm install`, then `npm run bundle`
-
-# How to use
-
-Open `dist/index.html`
+* Run `npm install --legacy-peer-deps`, then `npm start`

@@ -1,6 +1,5 @@
-import {Operation} from './operation'
-import {PDFJS} from 'pdfjs-dist'
-import {OperationsAndErrors} from './operations-and-errors'
+import { Operation } from './operation'
+import { OperationsAndErrors } from './operations-and-errors'
 
 export class FilesParser {
 
